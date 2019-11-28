@@ -5,6 +5,8 @@ try:
 except ImportError:
 	from Tkinter import Tk  # PY2
 
+username = "Vetle" # PCGamingWiki username to be linked in refcheck
+
 # https://en.wikipedia.org/wiki/List_of_game_engines
 #
 #
@@ -178,7 +180,7 @@ def set_clip_v(name, version=None):
 		if(m.group(0) != version):
 			build_full_string = "|build=" + version
 	out_string = "{{Infobox game/row/engine|" + name + build_major_string \
-	+ "|ref=<ref name=\"engineversion\">{{Refcheck|user=Vetle|date=" \
+	+ "|ref=<ref name=\"engineversion\">{{Refcheck|user=" + username + "|date=" \
 	+ datetime.datetime.utcnow().isoformat()[:10] + "}}</ref>" + build_full_string + "}}"
 	set_clip(out_string)
 
