@@ -151,6 +151,12 @@ def main():
 				print("Found RPG Maker version: MV")
 				set_clip_v("RPG Maker", "MV")
 
+			match = re.search(br'ShiVa 3D Standalone Engine ([^\x20]+)', file_data)
+			if(not found and match is not None):
+				found = True
+				print("Found ShiVa Engine version: " + match.group(1).decode('utf-8'))
+				set_clip_v("ShiVa Engine", match.group(1).decode('utf-8'))
+
 			match = re.search(br'\x00WOLF_FileReadText', file_data)
 			if(not found and match is not None):
 				found = True
