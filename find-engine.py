@@ -97,6 +97,12 @@ def main():
 				print("Found LWJGL")
 				set_clip_v("LWJGL")
 
+			match = re.search(br'com\/badlogic\/gdx', file_data)
+			if(not found and match is not None):
+				found = True
+				print("Found LibGDX")
+				set_clip_v("LibGDX")
+
 			match = re.search(br'\r\nKirikiri Z Project Contributors\r\nW.Dee, casper', file_data)
 			if(not found and match is not None):
 				found = True
@@ -181,6 +187,7 @@ def set_clip(text):
 	r.withdraw()
 	r.clipboard_clear()
 	r.clipboard_append(text)
+	print(r.clipboard_get())
 	r.destroy()
 
 def set_clip_v(name, version=None):
