@@ -91,6 +91,12 @@ def main():
 				print("Found Unreal Engine version: 4")
 				set_clip_v("Unreal Engine 4")
 
+			match = re.search(br'org\/lwjgl\/LWJGL', file_data)
+			if(not found and match is not None):
+				found = True
+				print("Found LWJGL")
+				set_clip_v("LWJGL")
+
 			match = re.search(br'com\/badlogic\/gdx', file_data)
 			if(not found and match is not None):
 				found = True
