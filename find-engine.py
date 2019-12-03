@@ -175,6 +175,7 @@ def set_clip(text):
 	r.withdraw()
 	r.clipboard_clear()
 	r.clipboard_append(text)
+	print(r.clipboard_get())
 	r.destroy()
 
 def set_clip_v(name, version=None):
