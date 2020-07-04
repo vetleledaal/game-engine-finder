@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys, os, re, datetime, time, struct
+from itertools import product
 try:
 	from tkinter import Tk
 except ImportError:
@@ -127,7 +128,25 @@ def main():
 				print("Found RPG Maker version: 2003")
 				set_clip_v("RPG Maker", "2003")
 
+			# Cocos2d (and Cocos2d-x)
+			if not found:
+				patterns = (
+					re.compile(br'\xFF{3}\x00([\d.]+)\x00{3}Jan\x00Feb'),
+					re.compile(br'</set>\x0A\x00\xFF{3}\x00cocos2d-x ([\d.]+)\x00'),
+				)
 
+				datas = [file_data]
+				cocos2d_path = os.path.join(path, "libcocos2d.dll")
+				if os.path.exists(cocos2d_path):
+					with open(cocos2d_path, 'rb') as f:
+						datas.append(f.read())
+
+				for pattern, data in product(patterns, datas):
+						match = pattern.search(data)
+						if match:
+							set_clip_v("Cocos2d", match.group(1))
+							found = True
+							break
 
 			# RGSS3 Player (UNICODE)
 			match = re.search(br'\x52\x00\x47\x00\x53\x00\x53\x00\x33\x00\x20\x00\x50\x00\x6C\x00\x61\x00\x79\x00\x65\x00\x72\x00', file_data)
