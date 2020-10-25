@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys, os, re, datetime, time, struct
 from itertools import product
