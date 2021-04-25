@@ -74,11 +74,17 @@ def main():
 				print("Found Unity version: " + match.group(1).decode('utf-8'))
 				set_clip_v("Unity", match.group(1).decode('utf-8'))
 
-			match = re.search(br'name="YoYoGames.GameMaker.Runner"', file_data)
+			match = re.search(br'Made with GameMaker: Studio\x00', file_data)
 			if(not found and match is not None):
 				found = True
 				print("Found GameMaker")
 				set_clip_v("GameMaker")
+			else: # Fallback, Windows only
+				match = re.search(br'name="YoYoGames.GameMaker.Runner"', file_data)
+				if(not found and match is not None):
+					found = True
+					print("Found GameMaker")
+					set_clip_v("GameMaker")
 
 			match = re.search(br'Unreal Engine 3 Licensee\x00{4}Unreal Engine 3', file_data)
 			if(not found and match is not None):
