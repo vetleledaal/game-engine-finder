@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys, os, re, datetime, time, struct
+import sys, os, re, datetime, time, struct, glob
 from itertools import product
 try:
 	from tkinter import Tk
@@ -69,6 +69,13 @@ def main():
 					with(open(player_file, 'rb')) as file2:
 						file_data2 = file2.read()
 						match = re.search(br'\x00UnityPlayer\/([^\x20]+)', file_data2)
+
+			if match and match.group(1).decode('utf-8') == '%s':
+				ggm_files = glob.glob(os.path.join(exe_path, '*Data', 'globalgamemanagers'))
+				if ggm_files:
+					file_data2 = open(ggm_files[0], 'rb').read()
+					match = re.search(br'\x00(\d{1,4}\.\d+\.\d+[a-z]+\d+)\x00', file_data2)
+
 			if(not found and match is not None):
 				found = True
 				print("Found Unity version: " + match.group(1).decode('utf-8'))
