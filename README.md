@@ -5,4 +5,4 @@ Requires Python 2+.
 
 ## Usage
 
-To use, run the script as `python find-engine.py LocationToExecutable.exe` – should work with both Windows and Linux OSes for identifying supported game engines. Copy to clipboard function seems not to work properly under Linux.
+To use, run the script as `python find_engine.py LocationToExecutable.exe` – should work with both Windows and Linux OSes for identifying supported game engines. Copy to clipboard function seems not to work properly under Linux.
