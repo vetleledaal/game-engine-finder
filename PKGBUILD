@@ -25,5 +25,5 @@ pkgver() {
 
 package() {
         cd "$srcdir/${pkgname%-git}"
-        install -Dm755 find-engine.py ${pkgdir}/usr/bin/find-engine
+        install -Dm755 find_engine.py ${pkgdir}/usr/bin/find-engine
 }
