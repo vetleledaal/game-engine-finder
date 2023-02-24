@@ -32,22 +32,46 @@ def detect(exe):
 		# Get version from files...
 		init_file = os.path.join(path, "__init__.pyo")
 		vc_version_file = os.path.join(path, "vc_version.pyo")
+		match1 = None
+		match2 = None
 		if(os.path.exists(init_file) and os.path.exists(vc_version_file)):
-			match1 = None
-			match2 = None
 			with open(init_file, 'rb') as file:
 				file_data = file.read()
 				match1 = re.search(re.compile(br'vc_versioni\x00{4}((?:i.{4}){3,5})s', re.DOTALL), file_data)
 				if(match1):
 					match1 = struct.unpack("<" + ("cI" * (len(match1.group(1))//5)), match1.group(1))
+					match1 = ".".join(map(str, match1[1::2]))
+			if match1 is None:
+				# Parsing init binary failed, fall back to parsing init source
+				init_src_file = os.path.join(path, "__init__.py")
+				if(os.path.exists(init_src_file)):
+					with open(init_src_file, 'r') as file:
+						file_data = file.read()
+						match1_candidates = re.finditer(re.compile(r'version_tuple = \(([0-9]+, [0-9]+, [0-9]+), vc_version\)', re.DOTALL), file_data)
+						for match1_candidate in match1_candidates:
+							match1_candidate = match1_candidate.group(1)
+							match1_candidate = match1_candidate.replace(', ', '.')
+							if int(match1_candidate[:1]) <= 7:
+								# RenPy 7.x or lower, if Python 2
+								pythonpath = os.path.join(exe_path, "lib", "python2.*")
+								pythonglob = glob.glob(pythonpath)
+								if len(pythonglob) > 0:
+								    match1 = match1_candidate
+							else:
+								# RenPy 8.x or higher, if Python 3
+								pythonpath = os.path.join(exe_path, "lib", "python3.*")
+								pythonglob = glob.glob(pythonpath)
+								if len(pythonglob) > 0:
+								    match1 = match1_candidate
 			with open(vc_version_file, 'rb') as file:
 				file_data = file.read()
 				match2 = re.search(re.compile(br'\x00{3}(i.{4})', re.DOTALL), file_data)
 				if(match2):
 					match2 = struct.unpack("<cI", match2.group(1))
+					match2 = ".".join(map(str, match2[1::2]))
 		if(match1 is not None and match2 is not None):
 			found = True
-			ver = ".".join(map(str, match1[1::2] + match2[1::2]))
+			ver = ".".join([match1, match2])
 			print("Found Ren'Py version: " + ver)
 			return "Ren'Py", ver
 		else:
