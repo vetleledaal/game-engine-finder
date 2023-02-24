@@ -131,7 +131,9 @@ def detect(exe):
 				return "LWJGL", None
 
 			match = re.search(br'com\/badlogic\/gdx', file_data)
-			if(not found and match is not None):
+			# NW.js 29 includes this false positive string
+			decoy_match = re.search(br"Heavily inspired by LibGDX's CanvasGraphicsRenderer:", file_data)
+			if(not found and match is not None and decoy_match is None):
 				found = True
 				print("Found LibGDX")
 				return "LibGDX", None
@@ -206,11 +208,41 @@ def detect(exe):
 				print("Found RPG Maker version: XP")
 				return "RPG Maker", "XP"
 
-			match = re.search(br'd:\\slave\\win32_nw12\\node-webkit\\src\\content\\nw\\src\\shell_main\.cc', file_data)
+			# This string shows up in NW.js used by RPG Maker MV
+			match = re.search(br'\\node-webkit\\src\\[a-z]+\\nw\\', file_data)
+			if match is None:
+				# This string shows up in NW.js used by RPG Maker MZ
+				match = re.search(br'nw\.exe\.pdb', file_data)
 			if(not found and match is not None):
-				found = True
-				print("Found RPG Maker version: MV")
-				return "RPG Maker", "MV"
+				# NW.js; might or might not be RPG Maker
+				js_path = os.path.join(exe_path, '**', '*.js')
+				js_glob = glob.glob(js_path, recursive=True)
+				match_name = None
+				match_version = None
+				for js in js_glob:
+					with open(js, 'rb') as js_file:
+						js_data = js_file.read()
+						if match_name is None:
+							# MV and MZ use different quote marks
+							match_name = re.search(br"Utils\.RPGMAKER_NAME = ['\"]([A-Za-z]+)['\"];", js_data)
+							if match_name is not None:
+								match_name = match_name.group(1).decode()
+						if match_version is None:
+							# MV and MZ use different quote marks
+							match_version = re.search(br"Utils\.RPGMAKER_VERSION = ['\"]([0-9\.]+)['\"];", js_data)
+							if match_version is not None:
+								match_version = match_version.group(1).decode()
+						if match_name is not None and match_version is not None:
+							break
+				if match_name is not None and match_version is not None:
+					found = True
+					combined_version = match_name + ' ' + match_version
+					print("Found RPG Maker version: " + combined_version)
+					return "RPG Maker", combined_version
+				else:
+					found = True
+					print("Found NW.js")
+					return "NW.js", None
 
 			match = re.search(br'ShiVa 3D Standalone Engine ([^\x20]+)', file_data)
 			if(not found and match is not None):
