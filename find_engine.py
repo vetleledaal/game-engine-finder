@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import sys, os, re, datetime, time, struct, glob
 from itertools import product
-try:
-	from tkinter import Tk
-except ImportError:
-	from Tkinter import Tk  # PY2
+from tkinter import Tk
 
 username = "Vetle" # PCGamingWiki username to be linked in refcheck
 
