@@ -27,19 +27,23 @@ def detect(exe):
 		# Probably renpy project
 		# Get version from files...
 		init_file = os.path.join(path, "__init__.pyo")
+		init_src_file = os.path.join(path, "__init__.py")
 		vc_version_file = os.path.join(path, "vc_version.pyo")
+		vc_version_src_file = os.path.join(path, "vc_version.py")
+		init_exists = os.path.exists(init_file) or os.path.exists(init_src_file)
+		vc_version_exists = os.path.exists(vc_version_file) or os.path.exists(vc_version_src_file)
 		match1 = None
 		match2 = None
-		if(os.path.exists(init_file) and os.path.exists(vc_version_file)):
-			with open(init_file, 'rb') as file:
-				file_data = file.read()
-				match1 = re.search(re.compile(br'vc_versioni\x00{4}((?:i.{4}){3,5})s', re.DOTALL), file_data)
-				if(match1):
-					match1 = struct.unpack("<" + ("cI" * (len(match1.group(1))//5)), match1.group(1))
-					match1 = ".".join(map(str, match1[1::2]))
+		if(init_exists and vc_version_exists):
+			if os.path.exists(init_file):
+				with open(init_file, 'rb') as file:
+					file_data = file.read()
+					match1 = re.search(re.compile(br'vc_versioni\x00{4}((?:i.{4}){3,5})s', re.DOTALL), file_data)
+					if(match1):
+						match1 = struct.unpack("<" + ("cI" * (len(match1.group(1))//5)), match1.group(1))
+						match1 = ".".join(map(str, match1[1::2]))
 			if match1 is None:
 				# Parsing init binary failed, fall back to parsing init source
-				init_src_file = os.path.join(path, "__init__.py")
 				if(os.path.exists(init_src_file)):
 					with open(init_src_file, 'r') as file:
 						file_data = file.read()
@@ -59,12 +63,21 @@ def detect(exe):
 								pythonglob = glob.glob(pythonpath)
 								if len(pythonglob) > 0:
 								    match1 = match1_candidate
-			with open(vc_version_file, 'rb') as file:
-				file_data = file.read()
-				match2 = re.search(re.compile(br'\x00{3}(i.{4})', re.DOTALL), file_data)
-				if(match2):
-					match2 = struct.unpack("<cI", match2.group(1))
-					match2 = ".".join(map(str, match2[1::2]))
+			if os.path.exists(vc_version_file):
+				with open(vc_version_file, 'rb') as file:
+					file_data = file.read()
+					match2 = re.search(re.compile(br'\x00{3}(i.{4})', re.DOTALL), file_data)
+					if(match2):
+						match2 = struct.unpack("<cI", match2.group(1))
+						match2 = ".".join(map(str, match2[1::2]))
+			if match2 is None:
+				# Parsing vc_version binary failed, fall back to parsing vc_version source
+				if(os.path.exists(vc_version_src_file)):
+					with open(vc_version_src_file, 'r') as file:
+						file_data = file.read()
+						match2 = re.search(re.compile(r'vc_version = ([0-9]+)', re.DOTALL), file_data)
+						if(match2):
+							match2 = match2.group(1)
 		if(match1 is not None and match2 is not None):
 			found = True
 			ver = ".".join([match1, match2])
