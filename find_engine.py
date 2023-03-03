@@ -158,6 +158,9 @@ def detect(exe):
 				return "KiriKiri Z", None
 
 			match = re.search(br'\x00__ZL17mkxpDataDirectoryiPmm\x00', file_data)
+			if match is None:
+				# This string shows up in the Falcon-mkxp and mkxp-z forks.
+				match = re.search(br'\x00_mkxp_kernel_caller_alias\x00', file_data)
 			if(not found and match is not None):
 				found = True
 				print("Found mkxp")
