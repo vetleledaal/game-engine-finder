@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, re, datetime, time, struct, glob
+import configparser, sys, os, re, datetime, time, struct, glob
 from itertools import product
 from tkinter import Tk
 
@@ -162,6 +162,79 @@ def detect(exe):
 				# This string shows up in the Falcon-mkxp and mkxp-z forks.
 				match = re.search(br'\x00_mkxp_kernel_caller_alias\x00', file_data)
 			if(not found and match is not None):
+				# Try to detect which RGSS version is being used by mkxp.
+				# First we try mkxp.conf, which takes highest priority.
+				# TODO: also try mkxp.json, which is used by the mkxp-z fork.
+				mkxp_conf_path = os.path.join(exe_path, "mkxp.conf")
+				if(os.path.exists(mkxp_conf_path)):
+					with open(mkxp_conf_path) as mkxp_conf_file:
+						mkxp_conf = configparser.ConfigParser()
+						try:
+							# Workaround missing section header in mkxp.conf.
+							mkxp_conf.read_string('[top]\n' + mkxp_conf_file.read())
+							if 'rgssVersion' in mkxp_conf['top']:
+								mkxp_version = mkxp_conf['top']['rgssVersion']
+								mkxp_version = int(mkxp_version)
+								if mkxp_version == 1:
+									found = True
+									print("Found mkxp version: XP")
+									return "mkxp", "XP"
+								if mkxp_version == 2:
+									found = True
+									print("Found mkxp version: VX")
+									return "mkxp", "VX"
+								if mkxp_version == 3:
+									found = True
+									print("Found mkxp version: VX Ace")
+									return "mkxp", "VX Ace"
+						except:
+							pass
+
+				# If mkxp.conf doesn't list an RGSS version, or if it's 0, then fallback to Game.ini.
+				ini_path_glob = os.path.join(exe_path, "*.ini")
+				ini_paths = glob.glob(ini_path_glob)
+				for i in ini_paths:
+					game_ini = configparser.ConfigParser()
+					try:
+						game_ini.read(i)
+					except UnicodeDecodeError:
+						# Workaround for Japanese games
+						game_ini.read(i, encoding='shift_jis')
+
+					# Each RGSS version uses a different Scripts archive extension.
+					if 'Game' in game_ini and 'Scripts' in game_ini['Game']:
+						mkxp_scripts = game_ini['Game']['Scripts']
+						if mkxp_scripts.endswith('.rxdata'):
+							found = True
+							print("Found mkxp version: XP")
+							return "mkxp", "XP"
+						if mkxp_scripts.endswith('.rvdata'):
+							found = True
+							print("Found mkxp version: VX")
+							return "mkxp", "VX"
+						if mkxp_scripts.endswith('.rvdata2'):
+							found = True
+							print("Found mkxp version: VX Ace")
+							return "mkxp", "VX Ace"
+
+				# If Game.ini didn't list a Scripts path, then fallback to detecting the archive file directly.
+				scripts_path = os.path.join(exe_path, "Data", "Scripts.rxdata")
+				if(os.path.exists(scripts_path)):
+					found = True
+					print("Found mkxp version: XP")
+					return "mkxp", "XP"
+				scripts_path = os.path.join(exe_path, "Data", "Scripts.rvdata")
+				if(os.path.exists(scripts_path)):
+					found = True
+					print("Found mkxp version: VX")
+					return "mkxp", "VX"
+				scripts_path = os.path.join(exe_path, "Data", "Scripts.rvdata2")
+				if(os.path.exists(scripts_path)):
+					found = True
+					print("Found mkxp version: VX Ace")
+					return "mkxp", "VX Ace"
+
+				# We couldn't find the RGSS version.
 				found = True
 				print("Found mkxp")
 				return "mkxp", None
