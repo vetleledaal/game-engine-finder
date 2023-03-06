@@ -3,7 +3,7 @@ import configparser, sys, os, re, datetime, time, struct, glob
 from itertools import product
 from tkinter import Tk
 
-username = "Vetle" # PCGamingWiki username to be linked in refcheck
+username = "Placeholder" # PCGamingWiki username to be linked in refcheck
 
 # https://en.wikipedia.org/wiki/List_of_game_engines
 #

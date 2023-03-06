@@ -5,10 +5,17 @@ Requires Python 3.5+.
 
 ## Installation
 
-You can either use the `PKGBUILD` or run:
+### Arch Linux
+```bash
+makepkg -sri
+```
 
-`pip install --user .`
+### Other
+```bash
+pip install --user --editable .
+```
 
 ## Usage
+Before using the `find_engine.py` script, make sure to set your PCGamingWiki username at the top of the file. To use the script, run it with the command `find-engine LocationToExecutable.exe`. Note that the clipboard feature may not work on Linux.
 
-To use, run the script as `find-engine LocationToExecutable.exe` – should work with both Windows and Linux OSes for identifying supported game engines. Copy to clipboard function seems not to work properly under Linux. To run without installing, you can use `python ./find_engine.py` instead of `find-engine`.
+If you prefer not to install the script, you can still run it by executing the command `python find_engine.py` instead of `find-engine`.
