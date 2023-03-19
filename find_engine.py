@@ -11,44 +11,46 @@ username = "Placeholder" # PCGamingWiki username to be linked in refcheck
 # AGS - Adventure Game Studio (2.72 checked) -- ????
 # /ACI version (\d\.[\w\s\-]{1,8}(?:\.[\w\s\-]{1,8})?)[\n\)\[,]/
 
+def detect_folder(path):
+	# Find all files in directory.
+	candidate_exes_glob = os.path.join(path, "*")
+	candidate_exes = glob.glob(candidate_exes_glob)
+	# Filter out subdirectories.
+	candidate_exes = [exe for exe in candidate_exes if not os.path.isdir(exe)]
+
+	# First try files with the .exe suffix.
+	deferred_exes = []
+	for exe in candidate_exes:
+		if not exe.endswith('.exe'):
+			deferred_exes.append(exe)
+			continue
+		engine, engine_ver = detect(exe)
+		if engine != '!!!':
+			return engine, engine_ver
+
+	# Then try files with the executable permission bit (non-Windows only).
+	candidate_exes = deferred_exes
+	deferred_exes = []
+	for exe in candidate_exes:
+		if not (os.stat(exe).st_mode & stat.S_IXUSR):
+			deferred_exes.append(exe)
+			continue
+		engine, engine_ver = detect(exe)
+		if engine != '!!!':
+			return engine, engine_ver
+
+	# Then try other files.
+	candidate_exes = deferred_exes
+	for exe in candidate_exes:
+		engine, engine_ver = detect(exe)
+		if engine != '!!!':
+			return engine, engine_ver
+
+	return '!!!', None
+
 def detect(exe):
 	if os.path.isdir(exe):
-		# Find all files in directory.
-		exe_path = exe
-		candidate_exes_glob = os.path.join(exe_path, "*")
-		candidate_exes = glob.glob(candidate_exes_glob)
-		# Filter out subdirectories.
-		candidate_exes = [exe for exe in candidate_exes if not os.path.isdir(exe)]
-
-		# First try files with the .exe suffix.
-		deferred_exes = []
-		for exe in candidate_exes:
-			if not exe.endswith('.exe'):
-				deferred_exes.append(exe)
-				continue
-			engine, engine_ver = detect(exe)
-			if engine != '!!!':
-				return engine, engine_ver
-
-		# Then try files with the executable permission bit (non-Windows only).
-		candidate_exes = deferred_exes
-		deferred_exes = []
-		for exe in candidate_exes:
-			if not (os.stat(exe).st_mode & stat.S_IXUSR):
-				deferred_exes.append(exe)
-				continue
-			engine, engine_ver = detect(exe)
-			if engine != '!!!':
-				return engine, engine_ver
-
-		# Then try other files.
-		candidate_exes = deferred_exes
-		for exe in candidate_exes:
-			engine, engine_ver = detect(exe)
-			if engine != '!!!':
-				return engine, engine_ver
-
-		return '!!!', None
+		return detect_folder(exe)
 
 	found = False
 	# Check dir struct
