@@ -11,41 +11,34 @@ username = "Placeholder" # PCGamingWiki username to be linked in refcheck
 # AGS - Adventure Game Studio (2.72 checked) -- ????
 # /ACI version (\d\.[\w\s\-]{1,8}(?:\.[\w\s\-]{1,8})?)[\n\)\[,]/
 
+RE_POSSIBLE_EXE = re.compile(r'game|launch|run|start|begin|open|load|init|exec|\.bin$|app', re.IGNORECASE)
+
+def file_key(entry):
+	# First try files with the .exe suffix.
+	# Then try files with the executable permission bit (non-Windows only).
+	# Then try files that match likely keywords.
+	# Finally try anything else, in lexicographic order.
+	return (
+		not entry.name.endswith('.exe'),
+		not bool(entry.stat().st_mode & stat.S_IXUSR),
+		not bool(RE_POSSIBLE_EXE.search(entry.name)),
+		entry.name,
+	)
+
 def detect_folder(path):
 	# Find all files in directory.
-	candidate_exes_glob = os.path.join(path, "*")
-	candidate_exes = glob.glob(candidate_exes_glob)
-	# Filter out subdirectories.
-	candidate_exes = [exe for exe in candidate_exes if not os.path.isdir(exe)]
+	candidate_entries = [f for f in os.scandir(path) if f.is_file()]
 
-	# First try files with the .exe suffix.
-	deferred_exes = []
-	for exe in candidate_exes:
-		if not exe.endswith('.exe'):
-			deferred_exes.append(exe)
-			continue
-		engine, engine_ver = detect(exe)
+	# Sort to minimize search time.
+	candidate_entries.sort(key=file_key)
+
+	# Try each file until we find a match.
+	for entry in candidate_entries:
+		engine, engine_ver = detect(entry.path)
 		if engine != '!!!':
 			return engine, engine_ver
 
-	# Then try files with the executable permission bit (non-Windows only).
-	candidate_exes = deferred_exes
-	deferred_exes = []
-	for exe in candidate_exes:
-		if not (os.stat(exe).st_mode & stat.S_IXUSR):
-			deferred_exes.append(exe)
-			continue
-		engine, engine_ver = detect(exe)
-		if engine != '!!!':
-			return engine, engine_ver
-
-	# Then try other files.
-	candidate_exes = deferred_exes
-	for exe in candidate_exes:
-		engine, engine_ver = detect(exe)
-		if engine != '!!!':
-			return engine, engine_ver
-
+	# No matches found.
 	return '!!!', None
 
 def detect(exe):
