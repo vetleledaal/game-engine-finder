@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import configparser, sys, os, re, datetime, time, stat, struct, glob
+import configparser, sys, os, re, datetime, time, stat, struct, pathlib
 from itertools import product
 from tkinter import Tk
 
@@ -26,6 +26,8 @@ def file_key(entry):
     )
 
 def detect_folder(path):
+    path = pathlib.Path(path)
+
     # Find all files in directory.
     candidate_entries = [f for f in os.scandir(path) if f.is_file()]
 
@@ -42,33 +44,35 @@ def detect_folder(path):
     return None, None
 
 def detect(exe):
-    if os.path.isdir(exe):
+    exe = pathlib.Path(exe)
+
+    if exe.is_dir():
         return detect_folder(exe)
 
     found = False
     # Check dir struct
-    exe_path = os.path.dirname(exe)
+    exe_path = exe.parent
 
-    path = os.path.join(exe_path, "Adobe AIR")
-    if(not found and os.path.exists(path)):
+    path = exe_path / "Adobe AIR"
+    if(not found and path.exists()):
         # Probably Adobe AIR (not tested)
         print('Found Adobe AIR')
         return "Adobe AIR", None
 
-    path = os.path.join(exe_path, "renpy")
-    if(not found and os.path.exists(path)):
+    path = exe_path / "renpy"
+    if(not found and path.exists()):
         # Probably renpy project
         # Get version from files...
-        init_file = os.path.join(path, "__init__.pyo")
-        init_src_file = os.path.join(path, "__init__.py")
-        vc_version_file = os.path.join(path, "vc_version.pyo")
-        vc_version_src_file = os.path.join(path, "vc_version.py")
-        init_exists = os.path.exists(init_file) or os.path.exists(init_src_file)
-        vc_version_exists = os.path.exists(vc_version_file) or os.path.exists(vc_version_src_file)
+        init_file = path / "__init__.pyo"
+        init_src_file = path / "__init__.py"
+        vc_version_file = path / "vc_version.pyo"
+        vc_version_src_file = path / "vc_version.py"
+        init_exists = init_file.exists() or init_src_file.exists()
+        vc_version_exists = vc_version_file.exists() or vc_version_src_file.exists()
         match1 = None
         match2 = None
         if(init_exists and vc_version_exists):
-            if os.path.exists(init_file):
+            if init_file.exists():
                 with open(init_file, 'rb') as file:
                     file_data = file.read()
                     match1 = re.search(re.compile(br'vc_versioni\x00{4}((?:i.{4}){3,5})s', re.DOTALL), file_data)
@@ -77,26 +81,25 @@ def detect(exe):
                         match1 = ".".join(map(str, match1[1::2]))
             if match1 is None:
                 # Parsing init binary failed, fall back to parsing init source
-                if(os.path.exists(init_src_file)):
+                if(init_src_file.exists()):
                     with open(init_src_file, 'r') as file:
                         file_data = file.read()
                         match1_candidates = re.finditer(re.compile(r'version_tuple = \(([0-9]+, [0-9]+, [0-9]+), vc_version\)', re.DOTALL), file_data)
                         for match1_candidate in match1_candidates:
                             match1_candidate = match1_candidate.group(1)
                             match1_candidate = match1_candidate.replace(', ', '.')
+                            libpath = exe_path / "lib"
                             if int(match1_candidate[:1]) <= 7:
                                 # RenPy 7.x or lower, if Python 2
-                                pythonpath = os.path.join(exe_path, "lib", "python2.*")
-                                pythonglob = glob.glob(pythonpath)
-                                if len(pythonglob) > 0:
+                                pythonpaths = libpath.glob("python2.*")
+                                if next(pythonpaths, None) is not None:
                                     match1 = match1_candidate
                             else:
                                 # RenPy 8.x or higher, if Python 3
-                                pythonpath = os.path.join(exe_path, "lib", "python3.*")
-                                pythonglob = glob.glob(pythonpath)
-                                if len(pythonglob) > 0:
+                                pythonpaths = libpath.glob("python3.*")
+                                if next(pythonpaths, None) is not None:
                                     match1 = match1_candidate
-            if os.path.exists(vc_version_file):
+            if vc_version_file.exists():
                 with open(vc_version_file, 'rb') as file:
                     file_data = file.read()
                     match2 = re.search(re.compile(br'\x00{3}(i.{4})', re.DOTALL), file_data)
@@ -105,7 +108,7 @@ def detect(exe):
                         match2 = ".".join(map(str, match2[1::2]))
             if match2 is None:
                 # Parsing vc_version binary failed, fall back to parsing vc_version source
-                if(os.path.exists(vc_version_src_file)):
+                if(vc_version_src_file.exists()):
                     with open(vc_version_src_file, 'r') as file:
                         file_data = file.read()
                         match2 = re.search(re.compile(r'vc_version = ([0-9]+)', re.DOTALL), file_data)
@@ -128,14 +131,14 @@ def detect(exe):
             match = re.search(br'\x00UnityPlayer\/([^\x20]+)', file_data)
 
             if(match is None):
-                player_file = os.path.join(exe_path, "UnityPlayer.dll")
-                if(os.path.exists(player_file)):
+                player_file = exe_path / "UnityPlayer.dll"
+                if(player_file.exists()):
                     with(open(player_file, 'rb')) as file2:
                         file_data2 = file2.read()
                         match = re.search(br'\x00UnityPlayer\/([^\x20]+)', file_data2)
 
             if match and match.group(1).decode('utf-8') == '%s':
-                ggm_files = glob.glob(os.path.join(exe_path, '*Data', 'globalgamemanagers'))
+                ggm_files = exe_path.glob('*Data/globalgamemanagers')
                 if ggm_files:
                     file_data2 = open(ggm_files[0], 'rb').read()
                     match = re.search(br'\x00(\d{1,4}\.\d+\.\d+[a-z]+\d+)\x00', file_data2)
@@ -198,8 +201,8 @@ def detect(exe):
                 # Try to detect which RGSS version is being used by mkxp.
                 # First we try mkxp.conf, which takes highest priority.
                 # TODO: also try mkxp.json, which is used by the mkxp-z fork.
-                mkxp_conf_path = os.path.join(exe_path, "mkxp.conf")
-                if(os.path.exists(mkxp_conf_path)):
+                mkxp_conf_path = exe_path / "mkxp.conf"
+                if(mkxp_conf_path.exists()):
                     with open(mkxp_conf_path) as mkxp_conf_file:
                         mkxp_conf = configparser.ConfigParser()
                         try:
@@ -224,8 +227,7 @@ def detect(exe):
                             pass
 
                 # If mkxp.conf doesn't list an RGSS version, or if it's 0, then fallback to Game.ini.
-                ini_path_glob = os.path.join(exe_path, "*.ini")
-                ini_paths = glob.glob(ini_path_glob)
+                ini_paths = exe_path.glob("*.ini")
                 for i in ini_paths:
                     game_ini = configparser.ConfigParser()
                     try:
@@ -251,18 +253,18 @@ def detect(exe):
                             return "mkxp", "VX Ace"
 
                 # If Game.ini didn't list a Scripts path, then fallback to detecting the archive file directly.
-                scripts_path = os.path.join(exe_path, "Data", "Scripts.rxdata")
-                if(os.path.exists(scripts_path)):
+                scripts_path = exe_path / "Data" / "Scripts.rxdata"
+                if(scripts_path.exists()):
                     found = True
                     print("Found mkxp version: XP")
                     return "mkxp", "XP"
-                scripts_path = os.path.join(exe_path, "Data", "Scripts.rvdata")
-                if(os.path.exists(scripts_path)):
+                scripts_path = exe_path / "Data" / "Scripts.rvdata"
+                if(scripts_path.exists()):
                     found = True
                     print("Found mkxp version: VX")
                     return "mkxp", "VX"
-                scripts_path = os.path.join(exe_path, "Data", "Scripts.rvdata2")
-                if(os.path.exists(scripts_path)):
+                scripts_path = exe_path / "Data" / "Scripts.rvdata2"
+                if(scripts_path.exists()):
                     found = True
                     print("Found mkxp version: VX Ace")
                     return "mkxp", "VX Ace"
@@ -292,8 +294,8 @@ def detect(exe):
                 )
 
                 datas = [file_data]
-                cocos2d_path = os.path.join(path, "libcocos2d.dll")
-                if os.path.exists(cocos2d_path):
+                cocos2d_path = path / "libcocos2d.dll"
+                if cocos2d_path.exists():
                     with open(cocos2d_path, 'rb') as f:
                         datas.append(f.read())
 
@@ -337,11 +339,10 @@ def detect(exe):
                 match = re.search(br'nw\.exe\.pdb', file_data)
             if(not found and match is not None):
                 # NW.js; might or might not be RPG Maker
-                js_path = os.path.join(exe_path, '**', '*.js')
-                js_glob = glob.glob(js_path, recursive=True)
+                js_files = exe_path.rglob('*.js')
                 match_name = None
                 match_version = None
-                for js in js_glob:
+                for js in js_files:
                     with open(js, 'rb') as js_file:
                         js_data = js_file.read()
                         if match_name is None:
