@@ -35,11 +35,11 @@ def detect_folder(path):
     # Try each file until we find a match.
     for entry in candidate_entries:
         engine, engine_ver = detect(entry.path)
-        if engine != '!!!':
+        if engine is not None:
             return engine, engine_ver
 
     # No matches found.
-    return '!!!', None
+    return None, None
 
 def detect(exe):
     if os.path.isdir(exe):
@@ -380,12 +380,14 @@ def detect(exe):
 
             if(found is False):
                 print("Version not found !!!")
-                return "!!!", None
+                return None, None
             file.close()
  
 def set_clip_detect():
     set_clip("QUIT PREMATURELY");
     name, version = detect(sys.argv[1])
+    if name is None:
+        name = '!!!'
     set_clip_v(name, version)
 
 def set_clip(text):
