@@ -1,5 +1,5 @@
 pkgname=game-engine-finder-git
-pkgver=r18.f788f96
+pkgver=r19.f788f96
 pkgrel=1
 pkgdesc="Python script for easily figuring out the engine used for a game"
 arch=('any')
