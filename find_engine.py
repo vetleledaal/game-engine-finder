@@ -382,7 +382,6 @@ def detect(exe):
             if(found is False):
                 print("Version not found !!!")
                 return None, None
-            file.close()
  
 def set_clip_detect():
     set_clip("QUIT PREMATURELY");
