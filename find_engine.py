@@ -138,9 +138,12 @@ def detect(exe):
                         match = re.search(br'\x00UnityPlayer\/([^\x20]+)', file_data2)
 
             if match and match.group(1).decode('utf-8') == '%s':
-                ggm_files = exe_path.glob('*Data/globalgamemanagers')
-                if ggm_files:
-                    file_data2 = open(ggm_files[0], 'rb').read()
+                # There can be multiple "*_Data" folders if there are multiple
+                # Unity .exe files, so we have to pick the folder corresponding
+                # to this .exe.
+                ggm_file = exe_path / (exe.stem + '_Data') / 'globalgamemanagers'
+                if ggm_file.exists():
+                    file_data2 = open(ggm_file, 'rb').read()
                     match = re.search(br'\x00(\d{1,4}\.\d+\.\d+[a-z]+\d+)\x00', file_data2)
 
             if not found and match is not None:
